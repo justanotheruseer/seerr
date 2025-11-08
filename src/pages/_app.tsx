@@ -1,3 +1,4 @@
+import ErrorBoundary from '@app/components/ErrorBoundary';
 import Layout from '@app/components/Layout';
 import LoadingBar from '@app/components/LoadingBar';
 import PWAHeader from '@app/components/PWAHeader';
@@ -199,23 +200,25 @@ const CoreApp: Omit<NextAppComponentType, 'origGetInitialProps'> = ({
         >
           <LoadingBar />
           <SettingsProvider currentSettings={currentSettings}>
-            <InteractionProvider>
-              <ToastProvider components={{ Toast, ToastContainer }}>
-                <Head>
-                  <title>{currentSettings.applicationTitle}</title>
-                  <meta
-                    name="viewport"
-                    content="initial-scale=1, viewport-fit=cover, width=device-width"
-                  ></meta>
-                  <PWAHeader
-                    applicationTitle={currentSettings.applicationTitle}
-                  />
-                </Head>
-                <StatusChecker />
-                <ServiceWorkerSetup />
-                <UserContext initialUser={user}>{component}</UserContext>
-              </ToastProvider>
-            </InteractionProvider>
+            <ErrorBoundary>
+              <InteractionProvider>
+                <ToastProvider components={{ Toast, ToastContainer }}>
+                  <Head>
+                    <title>{currentSettings.applicationTitle}</title>
+                    <meta
+                      name="viewport"
+                      content="initial-scale=1, viewport-fit=cover, width=device-width"
+                    ></meta>
+                    <PWAHeader
+                      applicationTitle={currentSettings.applicationTitle}
+                    />
+                  </Head>
+                  <StatusChecker />
+                  <ServiceWorkerSetup />
+                  <UserContext initialUser={user}>{component}</UserContext>
+                </ToastProvider>
+              </InteractionProvider>
+            </ErrorBoundary>
           </SettingsProvider>
         </IntlProvider>
       </LanguageContext.Provider>

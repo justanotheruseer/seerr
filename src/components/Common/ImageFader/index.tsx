@@ -24,10 +24,14 @@ const ImageFader: ForwardRefRenderFunction<HTMLDivElement, ImageFaderProps> = (
   const [activeIndex, setIndex] = useState(0);
 
   useEffect(() => {
-    const interval = setInterval(
-      () => setIndex((ai) => (ai + 1) % backgroundImages.length),
-      rotationSpeed
-    );
+    if (!backgroundImages || backgroundImages.length <= 1) {
+      // No rotation necessary when there are 0 or 1 background images
+      return undefined;
+    }
+
+    const interval = setInterval(() => {
+      setIndex((ai) => (ai + 1) % backgroundImages.length);
+    }, rotationSpeed);
 
     return () => {
       clearInterval(interval);
