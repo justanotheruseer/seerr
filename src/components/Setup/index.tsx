@@ -3,7 +3,6 @@ import JellyfinLogo from '@app/assets/services/jellyfin.svg';
 import PlexLogo from '@app/assets/services/plex.svg';
 import AppDataWarning from '@app/components/AppDataWarning';
 import Button from '@app/components/Common/Button';
-import ImageFader from '@app/components/Common/ImageFader';
 import PageTitle from '@app/components/Common/PageTitle';
 import LanguagePicker from '@app/components/Layout/LanguagePicker';
 import SettingsJellyfin from '@app/components/Settings/SettingsJellyfin';
@@ -16,6 +15,7 @@ import defineMessages from '@app/utils/defineMessages';
 import { MediaServerType } from '@server/constants/server';
 import type { Library } from '@server/lib/settings';
 import axios from 'axios';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { useCallback, useEffect, useState } from 'react';
@@ -23,6 +23,10 @@ import { useIntl } from 'react-intl';
 import { useToasts } from 'react-toast-notifications';
 import useSWR, { mutate } from 'swr';
 import SetupLogin from './SetupLogin';
+const ImageFader = dynamic(() => import('@app/components/Common/ImageFader'), {
+  ssr: false,
+  loading: () => null,
+});
 
 const messages = defineMessages('components.Setup', {
   welcome: 'Welcome to Seerr',
