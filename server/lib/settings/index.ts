@@ -141,6 +141,8 @@ export interface MainSettings {
   originalLanguage: string;
   blacklistedTags: string;
   blacklistedTagsLimit: number;
+  /** When enabled, movies discovered without any keywords/tags will be automatically blacklisted */
+  blacklistUntaggedMovies?: boolean;
   mediaServerType: number;
   partialRequestsEnabled: boolean;
   enableSpecialEpisodes: boolean;
@@ -401,6 +403,7 @@ class Settings {
         mediaServerType: MediaServerType.NOT_CONFIGURED,
         partialRequestsEnabled: true,
         enableSpecialEpisodes: false,
+        blacklistUntaggedMovies: false,
         locale: 'en',
         youtubeUrl: '',
       },

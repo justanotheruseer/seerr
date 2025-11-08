@@ -44,6 +44,9 @@ const messages = defineMessages('components.Settings.SettingsMain', {
   blacklistedTagsLimit: 'Limit Content Blacklisted per Tag',
   blacklistedTagsLimitTip:
     'The "Process Blacklisted Tags" job will blacklist this many pages into each sort. Larger numbers will create a more accurate blacklist, but use more space.',
+  blacklistUntaggedMovies: 'Blacklist Movies Without Tags',
+  blacklistUntaggedMoviesTip:
+    'When enabled, movies discovered without any keywords/tags will be automatically added to the blacklist. Use with caution as this may remove some valid content.',
   streamingRegion: 'Streaming Region',
   streamingRegionTip: 'Show streaming sites by regional availability',
   hideBlacklisted: 'Hide Blacklisted Items',
@@ -171,6 +174,7 @@ const SettingsMain = () => {
             streamingRegion: data?.streamingRegion || 'US',
             blacklistedTags: data?.blacklistedTags,
             blacklistedTagsLimit: data?.blacklistedTagsLimit || 50,
+            blacklistUntaggedMovies: data?.blacklistUntaggedMovies,
             partialRequestsEnabled: data?.partialRequestsEnabled,
             enableSpecialEpisodes: data?.enableSpecialEpisodes,
             cacheImages: data?.cacheImages,
@@ -191,6 +195,7 @@ const SettingsMain = () => {
                 originalLanguage: values.originalLanguage,
                 blacklistedTags: values.blacklistedTags,
                 blacklistedTagsLimit: values.blacklistedTagsLimit,
+                blacklistUntaggedMovies: values.blacklistUntaggedMovies,
                 partialRequestsEnabled: values.partialRequestsEnabled,
                 enableSpecialEpisodes: values.enableSpecialEpisodes,
                 cacheImages: values.cacheImages,
@@ -443,6 +448,32 @@ const SettingsMain = () => {
                           {errors.blacklistedTagsLimit}
                         </div>
                       )}
+                  </div>
+                </div>
+                <div className="form-row">
+                  <label
+                    htmlFor="blacklistUntaggedMovies"
+                    className="checkbox-label"
+                  >
+                    <span className="mr-2">
+                      {intl.formatMessage(messages.blacklistUntaggedMovies)}
+                    </span>
+                    <span className="label-tip">
+                      {intl.formatMessage(messages.blacklistUntaggedMoviesTip)}
+                    </span>
+                  </label>
+                  <div className="form-input-area">
+                    <Field
+                      type="checkbox"
+                      id="blacklistUntaggedMovies"
+                      name="blacklistUntaggedMovies"
+                      onChange={() => {
+                        setFieldValue(
+                          'blacklistUntaggedMovies',
+                          !values.blacklistUntaggedMovies
+                        );
+                      }}
+                    />
                   </div>
                 </div>
                 <div className="form-row">

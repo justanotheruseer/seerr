@@ -29,7 +29,7 @@ class BlacklistedTagProcessor implements RunnableScanner<StatusBase> {
     this.running = true;
 
     try {
-      await dataSource.transaction(async (em) => {
+      await dataSource.transaction(async (em: EntityManager) => {
         await this.cleanBlacklist(em);
         await this.createBlacklistEntries(em);
       });
@@ -68,19 +68,21 @@ class BlacklistedTagProcessor implements RunnableScanner<StatusBase> {
     const tmdb = createTmdbWithRegionLanguage();
 
     const settings = getSettings();
-    const blacklistedTags = settings.main.blacklistedTags;
-    const blacklistedTagsArr = blacklistedTags.split(',');
+    const blacklistedTags = settings.main.blacklistedTags || '';
+    const blacklistedTagsArr = blacklistedTags
+      ? blacklistedTags.split(',')
+      : [];
 
     const pageLimit = settings.main.blacklistedTagsLimit;
     const invalidKeywords = new Set<string>();
 
-    if (blacklistedTags.length === 0) {
-      return;
+    // Compute expected total work. Include tag-based queries if tags exist
+    // and include the optional untagged movie scan when enabled.
+    this.total = 0;
+    if (blacklistedTagsArr.length > 0) {
+      this.total +=
+        2 * blacklistedTagsArr.length * pageLimit * SortOptionsIterable.length;
     }
-
-    // The maximum number of queries we're expected to execute
-    this.total =
-      2 * blacklistedTagsArr.length * pageLimit * SortOptionsIterable.length;
 
     for (const type of [MediaType.MOVIE, MediaType.TV]) {
       const getDiscover =
@@ -141,6 +143,90 @@ class BlacklistedTagProcessor implements RunnableScanner<StatusBase> {
             });
           }
         }
+      }
+    }
+
+    // Optionally blacklist movies that have no keywords/tags
+    if (settings.main.blacklistUntaggedMovies) {
+      try {
+        // We'll scan discovery results for movies and check their keywords
+        const untaggedPageLimit = pageLimit;
+        const untaggedQueryMax = untaggedPageLimit * SortOptionsIterable.length;
+
+        // Increase the expected total so progress reporting remains sensible
+        this.total += untaggedQueryMax;
+
+        for (let query = 0; query < untaggedQueryMax; query++) {
+          if (!this.running) {
+            throw new AbortTransaction();
+          }
+
+          const page: number = (query % untaggedPageLimit) + 1;
+          const sortBy: SortOptions | undefined =
+            SortOptionsIterable[query % SortOptionsIterable.length];
+
+          const response = await tmdb.getDiscoverMovies({ page, sortBy });
+
+          for (const entry of response.results) {
+            if (!this.running) {
+              throw new AbortTransaction();
+            }
+
+            try {
+              // Get full movie details (includes keywords) and check if any keywords exist
+              const movieDetails = await tmdb.getMovie({ movieId: entry.id });
+
+              let keywordList: any[] = [];
+              if (movieDetails && (movieDetails as any).keywords) {
+                const kws = (movieDetails as any).keywords;
+                if (Array.isArray(kws.results)) {
+                  keywordList = kws.results;
+                } else if (Array.isArray(kws.keywords)) {
+                  keywordList = kws.keywords;
+                }
+              }
+
+              if (!keywordList || keywordList.length === 0) {
+                const blacklistRepository = em.getRepository(Blacklist);
+                const blacklistEntry = await blacklistRepository.findOne({
+                  where: { tmdbId: entry.id },
+                });
+
+                if (!blacklistEntry) {
+                  await Blacklist.addToBlacklist(
+                    {
+                      blacklistRequest: {
+                        mediaType: MediaType.MOVIE,
+                        title: 'title' in entry ? entry.title : undefined,
+                        tmdbId: entry.id,
+                      },
+                    },
+                    em
+                  );
+                }
+              }
+            } catch (err) {
+              logger.debug(
+                'Error checking movie keywords for untagged blacklist',
+                {
+                  label: 'Blacklisted Tags Processor',
+                  tmdbId: entry.id,
+                  errorMessage: err.message,
+                }
+              );
+            }
+          }
+
+          // Respect TMDB rate limits
+          await new Promise((res) => setTimeout(res, TMDB_API_DELAY_MS));
+
+          this.progress++;
+        }
+      } catch (err) {
+        logger.error('Error while processing untagged movies for blacklist', {
+          label: 'Blacklisted Tags Processor',
+          errorMessage: err.message,
+        });
       }
     }
 
